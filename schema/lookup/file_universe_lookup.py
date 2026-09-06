@@ -300,7 +300,7 @@ class ArtistRolesLookup(Base):
     __tablename__ = "artist_roles_lookup"
 
     id          = Column(SmallInteger, primary_key=True, autoincrement=True)
-    mca_pid     = Column(String(1024), nullable=True)
+    #mca_pid     = Column(String(1024), nullable=True)
     name        = Column(String(64), nullable=False, unique=True)
     description = Column(Text, nullable=True)
     created_at  = Column(TIMESTAMP(timezone=True), nullable=False, server_default=func.now())
@@ -317,7 +317,7 @@ class CreditSourceLookup(Base):
     __tablename__ = "credit_source_lookup"
 
     id          = Column(SmallInteger, primary_key=True, autoincrement=True)
-    mca_pid     = Column(String(1024), nullable=True)
+   # mca_pid     = Column(String(1024), nullable=True)
     name        = Column(String(64), nullable=False, unique=True)
     source_url  = Column(Text, nullable=True)                               # base URL of the source platform
     description = Column(Text, nullable=True)

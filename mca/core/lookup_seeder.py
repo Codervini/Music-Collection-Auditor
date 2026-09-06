@@ -257,9 +257,163 @@ def seed_iso_language_lookup():
 
     logger.info(" ISO Language Lookup Seeded")
 
+def seed_artist_roles_lookup():
+    ARTIST_ROLES = [
+    # --- WORK ---
+    ("writer",              "Wrote the music and/or words when more specific composer/lyricist credit is unavailable."),
+    ("composer",            "Wrote the music (not necessarily the lyrics) for a work."),
+    ("lyricist",            "Wrote the lyrics for a work."),
+    ("librettist",          "Wrote the libretto for an opera, musical, or similar staged work."),
+    ("translator",          "Translated the lyrics or libretto of a work into another language."),
+    ("arranger",            "Arranged a composition into a form suitable for a specific ensemble or performance."),
+    ("instrument_arranger", "Arranged the instrumental parts of a composition for performance."),
+    ("vocal_arranger",      "Arranged the vocal parts of a composition for performance."),
+    ("orchestrator",        "Adapted a composition for orchestra without substantially changing the musical substance."),
+    ("revised_by",          "Revised a work, usually the original composer at a later date."),
+    ("reconstructed_by",    "Reconstructed a work (usually one where the score was lost) to make it ready for performance."),
+    ("adapter",             "Adapted a work from a different medium, e.g. prose into audio drama or stage musical into film."),
+    ("scriptwriter",        "Wrote the original script for a dramatised work such as an audio drama."),
+    ("choreographer",       "Created the choreography for a work, often a ballet."),
+    ("commissioned",        "Commissioned the creation of a work."),
 
+    # --- RECORDING ---
+    ("performer",           "General performer credit on a recording when no instrument or vocal type is specified."),
+    ("vocalist",            "Performed vocals on a recording."),
+    ("instrumentalist",     "Performed one or more instruments on a recording."),
+    ("conductor",           "Conducted an orchestra, band, or choir on a recording."),
+    ("orchestra",           "An orchestra that performed on a recording."),
+    ("chorus_master",       "Directed a choir that performed on a recording."),
+    ("concertmaster",       "Led the orchestra or band as principal player on a recording."),
+    ("audio_director",      "Responsible for the creative realisation of an audio project such as an audio drama or audiobook."),
+    ("producer",            "Responsible for the creative and practical day-to-day aspects of making a recording."),
+    ("mix_engineer",        "Mixed the recorded tracks into a final release-ready piece using a mixing console."),
+    ("mastering_engineer",  "Mastered the audio for release. MB tracks this at release level."),
+    ("recording_engineer",  "Captured the performance to tape or digital medium."),
+    ("balance_engineer",    "Engineered the balance of sound levels during a recording or mixing session."),
+    ("audio_engineer",      "Operated or maintained machines used to generate or modify sound in analogue or digital form."),
+    ("sound_engineer",      "Ensured sounds reached microphones cleanly, without unwanted resonance or noise."),
+    ("editor",              "Connected or redistributed recorded elements; may include producing radio edits."),
+    ("field_recordist",     "Recorded field recordings for a recording or release."),
+    ("programmer",          "Programmed electronic instruments such as synthesizers or drum machines."),
+    ("remixer",             "Substantially altered and remixed one or more tracks into a new recording."),
+    ("dj_mixer",            "DJ who mixed a continuous mix recording or release."),
+    ("compiler",            "Selected and sequenced the tracks for a compilation."),
+    ("sound_effects",       "Created or provided sound effects for a recording."),
+    ("samples_from",        "Produced material that was sampled in another recording."),
+    ("video_director",      "Directed the music video for a recording."),
+    ("video_appearance",    "Appears in a music video without performing on the audio track."),
+    ("cinematographer",     "Served as director of photography for a music video."),
+    ("animator",            "Worked on animation for a music video."),
+    ("instrument_technician","Maintained or tuned instruments for a recording or release; includes piano tuner credits."),
+    ("creative_direction",  "Provided general creative inspiration during recording without contributing to writing or performance."),
+    ("art_direction",       "Did the art direction for a recording or release."),
+    ("artwork",             "Provided artwork for a recording or release."),
+    ("design",              "Did visual design work for a recording or release."),
+    ("graphic_design",      "Did graphic design or layout for a recording or release."),
+    ("illustration",        "Did illustration work for a recording or release."),
+    ("photography",         "Photographs included as part of a recording or release."),
+    ("artists_and_repertoire", "Talent scouting, artistic development, and liaison between artists and labels."),
+    ("phonographic_copyright", "Holds the phonographic copyright (℗) for a recording or release."),
+    ("copyright_holder",    "Holds the general copyright (©) for a release."),
+    ("publisher",           "Published the work or release. Distinct from the record label."),
+    ("liner_notes",         "Authored the liner notes provided with a release."),
+    ("booking",             "Responsible for booking the studio or venue where the recording was made."),
+    ("legal_representation","Provided legal representation for a recording or release."),
+    ("production_coordinator", "Coordinated the production of a release."),
+    ("lacquer_cut",         "Cut the lacquer for a vinyl release."),
+    ("transfer_engineer",   "Transferred a release from one medium to another, e.g. tape to digital."),
+    ("booklet_editor",      "Edited the booklet accompanying a release."),
+    ("misc",                "Miscellaneous role not covered by any other type."),
+
+    # --- MCA-specific (no direct MB type) ---
+    ("main_artist",         "Primary credited artist on a recording or release."),
+    ("featured",            "Guest or featured artist credited on a recording."),
+    ("cover_artist",        "Performs a cover version of another artist's original work."),
+    ("original_performer",  "The artist who first recorded or performed a work.")
+    ]
+    for i in ARTIST_ROLES:
+        insert_multiple_columns_data(ArtistRolesLookup,{"name":i[0],"description":i[1]})
+    else:    
+        logger.info(" Artist Roles Type Lookup Seeded")
+    
+def seed_credit_source_lookup():
+    CREDIT_SOURCE_SEED = [
+    # --- Core music metadata DBs ---
+    ("musicbrainz",         "https://musicbrainz.org",              "Open community music encyclopedia with detailed credits and relationships."),
+    ("discogs",             "https://www.discogs.com",              "Community-built database of physical and digital release credits and labels."),
+    ("allmusic",            "https://www.allmusic.com",             "Professionally curated music database with credits, biographies and reviews."),
+    ("gracenote",           "https://www.gracenote.com",            "Commercial music metadata and audio fingerprinting service used widely in consumer electronics."),
+    ("theaudiodb",          "https://www.theaudiodb.com",           "Community music database with artist bios, artwork and social links."),
+    ("jaxsta",              "https://jaxsta.com",                   "Official music credits database sourced from major labels and distributors. Went into hibernation Dec 2025."),
+    ("secondhandsongs",     "https://secondhandsongs.com",          "User-generated database of cover versions and samples with work-level attribution."),
+    ("whosampled",          "https://www.whosampled.com",           "Community database of samples, covers and remixes with source attribution."),
+    ("rate_your_music",     "https://rateyourmusic.com",            "Community-rated music catalog with discography and release metadata."),
+    ("sound_credit",        "https://soundcredit.com",              "Multimodal platform for entering and editing official music credits."),
+    ("imvdb",               "https://imvdb.com",                    "Internet Music Video Database; tracks credits for music videos."),
+
+    # --- Lyrics & annotations ---
+    ("genius",              "https://genius.com",                   "Lyrics and song annotation platform with songwriter and producer credits."),
+    ("musixmatch",          "https://www.musixmatch.com",           "Lyrics database and audio recognition platform with track metadata."),
+
+    # --- Streaming platforms (carry metadata in their APIs) ---
+    ("spotify",             "https://www.spotify.com",              "Streaming platform; provides track, artist and album metadata via Web API."),
+    ("apple_music",         "https://music.apple.com",              "Apple Music / iTunes catalog metadata via the iTunes Search and MusicKit APIs."),
+    ("deezer",              "https://www.deezer.com",               "Streaming platform providing track and artist metadata via public API."),
+    ("tidal",               "https://tidal.com",                    "Hi-fi streaming platform with track and artist metadata including credits on some releases."),
+    ("qobuz",               "https://www.qobuz.com",                "Hi-res streaming and download platform with detailed album and credits metadata."),
+    ("amazon_music",        "https://music.amazon.com",             "Amazon Music streaming catalog with track and artist metadata."),
+    ("youtube_music",       "https://music.youtube.com",            "YouTube Music catalog metadata accessible via YouTube Data API."),
+    ("soundcloud",          "https://soundcloud.com",               "Audio platform with user-uploaded track and artist metadata via public API."),
+    ("bandcamp",            "https://bandcamp.com",                 "Artist-direct platform with release and credit metadata on album pages."),
+    ("beatport",            "https://www.beatport.com",             "Electronic music store and streaming platform with track and label metadata."),
+    ("napster",             "https://www.napster.com",              "Music streaming platform with track and artist metadata via API."),
+
+    # --- Fingerprinting & identification ---
+    ("acoustid",            "https://acoustid.org",                 "Open-source audio fingerprinting service linked to MusicBrainz recordings."),
+    ("acrcloud",            "https://www.acrcloud.com",             "Commercial audio fingerprinting and music recognition service."),
+    ("shazam",              "https://www.shazam.com",               "Audio recognition service with track and artist metadata."),
+
+    # --- Rights & royalty DBs ---
+    ("the_mlc",             "https://www.themlc.com",               "US Mechanical Licensing Collective; authoritative database of musical works and recording-to-work mappings."),
+    ("ascap",               "https://www.ascap.com",                "US PRO; Songview repertoire search with songwriter and publisher credits."),
+    ("bmi",                 "https://www.bmi.com",                  "US PRO; repertoire database with songwriter and publisher credits."),
+    ("sesac",               "https://www.sesac.com",                "US PRO; repertoire and licensing data for affiliated songwriters and publishers."),
+    ("gmr",                 "https://www.globalmusicroyalties.com", "US PRO representing select major artists; part of Songview from Sep 2025."),
+    ("socan",               "https://www.socan.com",                "Canadian PRO with public repertoire search for songwriter and publisher credits."),
+    ("prs",                 "https://www.prsformusic.com",          "UK PRO; repertoire database with songwriter and publisher credits."),
+    ("sacem",               "https://www.sacem.fr",                 "French PRO; repertoire database with songwriter and publisher credits."),
+    ("cisac",               "https://www.cisac.org",                "Global confederation of authors and composers societies; governs ISWC and IPI standards."),
+    ("isni",                "https://www.isni.org",                 "International Standard Name Identifier; authoritative IDs for creative contributors."),
+    ("wikidata",            "https://www.wikidata.org",             "Structured knowledge base providing artist identifiers and external links via SPARQL."),
+
+    # --- Structured identifier sources ---
+    ("credits_fm",          "https://credits.fm",                   "Open CC-BY database cross-verifying ISRC, ISWC, IPI, ISNI and UPC across MLC, MusicBrainz, CISAC and streaming platforms."),
+
+    # --- Genre-specific DBs ---
+    ("encyclopaedia_metallum", "https://www.metal-archives.com",    "Comprehensive heavy metal encyclopedia with band and release credits."),
+    ("vgmdb",               "https://vgmdb.net",                    "Database for video game, anime and doujin music soundtracks with detailed credits."),
+
+    # --- General knowledge ---
+    ("wikipedia",           "https://www.wikipedia.org",            "General encyclopaedia used as supplementary artist biography and context source."),
+
+    # --- File-level / local sources ---
+    ("embedded_tags",       None,                                   "Credit extracted from embedded audio file tags (ID3, Vorbis comment, APEv2, etc.) at import time."),
+    ("filename",            None,                                   "Credit inferred from the audio file name at import time."),
+    ("liner_notes",         None,                                   "Credit manually extracted from physical or digital release liner notes or booklets."),
+    ("user_manual",         None,                                   "Credit entered or corrected manually by the user."),
+    ("unknown",             None,                                   "Credit source is not known or was not recorded at ingestion time."),
+    ]
+    for i in CREDIT_SOURCE_SEED:
+            insert_multiple_columns_data(CreditSourceLookup,{"name":i[0],"source_url":i[1],"description":i[2]})
+    else:    
+        logger.info(" Credit Source Lookup Seeded")
+        
+
+
+    
 def seed_all_lookup():
-     
+    seed_credit_source_lookup()
+    seed_artist_roles_lookup()
     seed_work_type_lookup()
     seed_iso_language_lookup()
     seed_link_types_lookup()
