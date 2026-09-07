@@ -169,7 +169,7 @@ class WorkCredits(Base):
     mca_pid             = Column(String(1024), nullable=False)
     work_id             = Column(UUID(as_uuid=True), ForeignKey("works.id"), nullable=False)
     artist_id           = Column(UUID(as_uuid=True), ForeignKey("artists.id"), nullable=False)
-    role_id             = Column(SmallInteger, ForeignKey("artist_roles_lookup.id"), nullable=False)
+    role_id             = Column(SmallInteger, ForeignKey("artist_roles_lookup.id"), nullable=True)
     credit_source_id    = Column(SmallInteger, ForeignKey("credit_source_lookup.id"), nullable=True)
     credit_source_url   = Column(Text, nullable=True)                     
     note                = Column(Text, nullable=True)

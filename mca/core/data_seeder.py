@@ -236,7 +236,7 @@ class SeedWorksFamily():
     def __init__(self):
         self.session = SESSION_MANAGER()
         self.artist_tb_data = get_all_values_of_multiple_column_in_tb(Artists,["id","name","mbid"],"created_at")
-        self.tb_data = get_all_values_of_multiple_column_in_tb(Works,["id","mbid","title","type_id","iswc","language_id"],"created_at") 
+        self.work_tb_data = get_all_values_of_multiple_column_in_tb(Works,["id","mbid","title","type_id","iswc","language_id"],"created_at") 
     def _get_work_data_from_mb(self,mbid,offset,limit=100):
         api = f"https://musicbrainz.org/ws/2/work?artist={mbid}&offset={offset}&limit={limit}&fmt=json"
         return api_request_handler(api, musicbrainz_session, mb_header)
@@ -302,29 +302,49 @@ class SeedWorksFamily():
 
     def seed_work_credits(self):
         auditor = AuditWriter(self.session,seeder_name=inspect.currentframe().f_code.co_name) 
-        try:
-            for work in self.tb_data:
-                if not work[1]: # work["mbid"]
-                    logger.warning(f"{work[2]}:{work[0]} has no mbid, skipping quering for work credits.")
+        # ["id","mbid","title","type_id","iswc","language_id"]
+        for count , work in enumerate(self.work_tb_data,1):
+            logger.info(f"Beginning to process {count}/{len(self.work_tb_data)} work for its credits")
+            if not work[1]: # work["mbid"]
+                logger.warning(f"{work[2]}:{work[0]} has no mbid, skipping quering for work credits.")
+                continue
+            work_credit_count = 0
+            api = f"https://musicbrainz.org/ws/2/work/{work[1]}?inc=artist-rels&fmt=json"
+            all_credits =  api_request_handler(api, musicbrainz_session, mb_header)
+            if not all_credits:
+                logger.warning(f" No work credits found for {work[2]}:{work[0]} | mbid={work[1]}; skipping")
+                continue
+            logger.info(f"Credits found for work name:{work[2]} | id:{work[0]} | mbid:{work[1]}, proceding to process")
+            for count, credit in enumerate(all_credits["relations"],start=1):
+                if not credit["artist"]["id"]:
+                    logger.warning(f"{count}/{len(all_credits["relations"])} Work-Credit relation has no Artist MBID, skipping")
+                    continue
+                if not fetch_id_by_value(Artists,"mbid",credit["artist"]["id"]):
+                    # insert the artist to Artists tb
+                    insert_multiple_columns_data(Artists,{
+                        "name":credit["artist"]["name"],
+                        "sort_name":credit["artist"]["sort-name"],
+                        "type_id":fetch_id_by_value(ArtistTypeLookup,"alt_type_id",credit["artist"]["type-id"]),
+                        "disambiguation": credit["artist"]["disambiguation"],
+                        "country_id": fetch_id_by_value(CountryLookup, "alpha2", credit["artist"]["country"]),
+                        "mbid":credit["artist"]["id"]
+                    })
+                data = {
+                    "work_id":work[0],
+                    "artist_id":fetch_id_by_value(Artists,"mbid",credit["artist"]["id"]),
+                    "role_id":fetch_id_by_value(ArtistRolesLookup,"name",(credits["type"] or "").lower()),
+                    "credit_source_id":(fetch_id_by_value(CreditSourceLookup,"name",credits["source-credit"]) or None),
+                    "credit_source_url": api,
+                    "credit_order": None,
+                    "note": None
+                }
+                inserted = insert_multiple_columns_data(WorkCredits,data) 
+                if inserted:
+                    auditor.record(Works.__tablename__,str(id),status="inserted")
                 else:
-                    work_credit_count = 0
-                    api = f"https://musicbrainz.org/ws/2/work/{work[1]}?inc=artist-rels&fmt=json"
-                    credits =  api_request_handler(api, musicbrainz_session, mb_header)
-                    if credits:
-                        for credit in credits["relations"]:
-                            if not credit["artist"]["id"]:
-                                logger.warning(f"{credit} has no Artist MBID, skipping")
-    #                         else:
-    #                             data = {"work_id":work[0],
-    #                                     "artist_id":fetch_id_by_value(Artists,"mbid",credit["artist"]["id"]),
-    # #                                    "role_id":fetch_id_by_value(ArtistRolesLookup,"alt_type_id",credits["type-id"]),
-    #                                     "credit_source_id":(fetch_id_by_value(CreditSourceLookup,"name",credits["source-credit"]) or None),
-    #                                     "credit_source_url": api,
-    #                                     "credit_order": None,
-    #                                     "note": None
-    #                                 }
-        except Exception as e:
-            logger.critical(f"Exception occured for {work[2]}:{work[0]}: {e}",exc_info=True)
+                    auditor.record(Works.__tablename__,str(id),status="failed")
+                
+
         auditor.finish()
 
 
