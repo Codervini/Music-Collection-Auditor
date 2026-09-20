@@ -48,7 +48,7 @@ class Artists(Base):
 
     id               = Column(UUID(as_uuid=True), primary_key=True, server_default=text("uuidv7()"))
     mca_pid          = Column(String(1024), nullable=True)
-    name             = Column(Text, nullable=False,unique=True)                         # display name e.g. "Freddie Mercury"
+    name             = Column(Text, nullable=False,unique=False)                         # display name e.g. "Freddie Mercury"
     sort_name        = Column(Text, nullable=True)                          # sortable e.g. "Mercury, Freddie"
     type_id          = Column(SmallInteger, ForeignKey("artist_type_lookup.id"), nullable=True)
     gender_id        = Column(SmallInteger, ForeignKey("gender_lookup.id"), nullable=True)
@@ -166,7 +166,7 @@ class WorkCredits(Base):
     __tablename__ = "work_credits"
 
     id                  = Column(UUID(as_uuid=True), primary_key=True, server_default=text("uuidv7()"))
-    mca_pid             = Column(String(1024), nullable=False)
+    mca_pid             = Column(String(1024), nullable=True)
     work_id             = Column(UUID(as_uuid=True), ForeignKey("works.id"), nullable=False)
     artist_id           = Column(UUID(as_uuid=True), ForeignKey("artists.id"), nullable=False)
     role_id             = Column(SmallInteger, ForeignKey("artist_roles_lookup.id"), nullable=True)
