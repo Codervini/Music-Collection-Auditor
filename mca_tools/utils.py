@@ -30,7 +30,7 @@ def api_request_handler(api, session:CachedSession, header=None, retries=5):
                 data = response.json()
                 logger.debug(f"Response data: {data}")
                 if session.service == "musicbrainz" and not response.from_cache:
-                    time.sleep(1.5)
+                    time.sleep(1)
                 return data
             
             logger.warning(f"API request failed | attempt={attempt}/{retries} | status={response.status_code} | url={api}")
