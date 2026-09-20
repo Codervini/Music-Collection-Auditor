@@ -302,6 +302,7 @@ class SeedWorksFamily():
 
     def seed_work_credits(self):
         auditor = AuditWriter(self.session,seeder_name=inspect.currentframe().f_code.co_name) 
+        total_work_credits = 0
         # ["id","mbid","title","type_id","iswc","language_id"]
         for count , work in enumerate(self.work_tb_data,1):
             logger.info(f"Beginning to process {count}/{len(self.work_tb_data)} work for its credits")
@@ -320,30 +321,32 @@ class SeedWorksFamily():
                     logger.warning(f"{count}/{len(all_credits["relations"])} Work-Credit relation has no Artist MBID, skipping")
                     continue
                 if not fetch_id_by_value(Artists,"mbid",credit["artist"]["id"]):
-                    # insert the artist to Artists tb
-                    insert_multiple_columns_data(Artists,{
+                    d = {
                         "name":credit["artist"]["name"],
                         "sort_name":credit["artist"]["sort-name"],
                         "type_id":fetch_id_by_value(ArtistTypeLookup,"alt_type_id",credit["artist"]["type-id"]),
                         "disambiguation": credit["artist"]["disambiguation"],
                         "country_id": fetch_id_by_value(CountryLookup, "alpha2", credit["artist"]["country"]),
                         "mbid":credit["artist"]["id"]
-                    })
+                    }
+                    insert_multiple_columns_data(Artists,d)
                 data = {
                     "work_id":work[0],
                     "artist_id":fetch_id_by_value(Artists,"mbid",credit["artist"]["id"]),
-                    "role_id":fetch_id_by_value(ArtistRolesLookup,"name",(credits["type"] or "").lower()),
-                    "credit_source_id":(fetch_id_by_value(CreditSourceLookup,"name",credits["source-credit"]) or None),
+                    "role_id":fetch_id_by_value(ArtistRolesLookup,"name",(credit["type"] or "").lower()),
+                    "credit_source_id":(fetch_id_by_value(CreditSourceLookup,"name",credit["source-credit"]) or None),
                     "credit_source_url": api,
-                    "credit_order": None,
+                    # "credit_order": None,
                     "note": None
                 }
                 inserted = insert_multiple_columns_data(WorkCredits,data) 
                 if inserted:
                     auditor.record(Works.__tablename__,str(id),status="inserted")
+                    total_work_credits +=1
                 else:
                     auditor.record(Works.__tablename__,str(id),status="failed")
                 
+            logger.info(f" {total_work_credits} Work Credits for {len(self.work_tb_data)} seeded succesfully.")
 
         auditor.finish()
 
@@ -354,13 +357,13 @@ class SeedWorksFamily():
             
 
 
-# SeedArtistsFamily().seed_artists(10,10)       
+# SeedArtistsFamily().seed_artists(10,1)       
 # SeedArtistsFamily().seed_artist_props_musicbrainz()  
 # SeedArtistsFamily().seed_artist_aliases()     
 # SeedArtistsFamily().seed_artist_link()     
 
-SeedWorksFamily().seed_works_mb()
-# SeedWorksFamily().seed_work_credits()
+# SeedWorksFamily().seed_works_mb()
+SeedWorksFamily().seed_work_credits()
 # seed_artist_aliases()
 # seed_artist_props_musicbrainz()
 # pprint(discover_artists_lastfm(969))
