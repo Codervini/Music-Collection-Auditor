@@ -350,7 +350,64 @@ class SeedWorksFamily():
 
         auditor.finish()
 
+class SeedRecordingsFamily():
+    def __init__(self):
+        self.session = SESSION_MANAGER()
+        self.artist_tb_data = get_all_values_of_multiple_column_in_tb(Artists,["id","name","mbid"],"created_at")
+        self.work_tb_data = get_all_values_of_multiple_column_in_tb(Works,["id","mbid","title"],"created_at")
+    def _mb_api_handler(self, entity: str, mbid: str , offset: int, limit:int=100):
+        api = f"https://musicbrainz.org/ws/2/recording?{entity}={mbid}&offset={offset}&limit={limit}"
+        return api_request_handler(api, musicbrainz_session, mb_header)
+        
+        
+    def seed_recordings_from_works_mb(self):
+        auditor = AuditWriter(self.session,seeder_name=inspect.currentframe().f_code.co_name) 
+        logger.info(f"---------------------------Starting to seed recordings from {len(self.work_tb_data)} works using Musicbrainz---------------------------")
+        for work_count, (id, mbid, title) in enumerate(self.work_tb_data,1):
+            recordings = []
+            first_batch = self._mb_api_handler("work",mbid,0,100)
+            recordings.extend(first_batch.get("recordings"))
+            if first_batch.get("recording-count") > 100:
+                for offset in range(100,first_batch.get("recording-count"),100):
+                    next_batch = self._mb_api_handler("work",mbid,offset,100)
+                    recordings.extend(next_batch.get("recordings"))
 
+            for record in recordings:
+                if not record.get("id"):
+                    continue
+                api = f"https://musicbrainz.org/ws/2/recording/{record.get("id")}?inc=isrcs+artist-credits+area-rels+recording-rels+label-rels+artist-rels+url-rels+work-rels"
+                record_details = api_request_handler(api, musicbrainz_session, mb_header)
+                data = {}
+                for relation in record_details["relations"]:
+                    if relation.get("target-type") == "work":
+                        if not fetch_id_by_value(Works,"mbid", relation["work"]["id"]):
+                            # If such work doesn't exist in Works table
+                            work_data = {
+                                "title": relation["work"].get("title"),
+                                "type_id": fetch_id_by_value(WorkTypeLookup,"name",(relation["work"].get("type") or "").capitalize()),
+                                "iswc":relation["work"].get("iswcs"),
+                                "language_id": fetch_id_by_value(ISOLanguageLookup,"iso_639_3", relation["work"].get("language")),
+                                "mbid":relation["work"].get("id"),
+                                "disambiguation":relation["work"].get("disambiguation",None),
+                                "raw_mb_response":relation["work"]                            
+                            } 
+                            insert_multiple_columns_data(Works,work_data)
+                        data["work_id"] =  fetch_id_by_value(Works,"mbid", relation["work"]["id"])
+
+                    
+
+
+            
+            
+
+
+
+
+
+            
+
+    def seed_recordings_from_artists_mb(self):
+        pass
 
 
             
@@ -361,9 +418,6 @@ class SeedWorksFamily():
 # SeedArtistsFamily().seed_artist_props_musicbrainz()  
 # SeedArtistsFamily().seed_artist_aliases()     
 # SeedArtistsFamily().seed_artist_link()     
-
 # SeedWorksFamily().seed_works_mb()
-SeedWorksFamily().seed_work_credits()
-# seed_artist_aliases()
-# seed_artist_props_musicbrainz()
-# pprint(discover_artists_lastfm(969))
+#SeedWorksFamily().seed_work_credits()
+
