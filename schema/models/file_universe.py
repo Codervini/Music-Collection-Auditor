@@ -205,7 +205,7 @@ class Recordings(Base):
     __tablename__ = "recordings"
 
     id                   = Column(UUID(as_uuid=True), primary_key=True, server_default=text("uuidv7()"))
-    mca_pid              = Column(String(1024), nullable=False)
+    mca_pid              = Column(String(1024), nullable=True)
     work_id              = Column(UUID(as_uuid=True), ForeignKey("works.id"), nullable=False)
     version_type_id      = Column(SmallInteger, ForeignKey("version_type_lookup.id"), nullable=False)
     official_title       = Column(Text, nullable=False)                     # canonical credited title
@@ -249,7 +249,7 @@ class RecordingCredits(Base):
     role_id             = Column(SmallInteger, ForeignKey("artist_roles_lookup.id"), nullable=False)
     credit_source_id    = Column(SmallInteger, ForeignKey("credit_source_lookup.id"), nullable=True)
     credit_source_url   = Column(Text, nullable=True)
-    credit_order        = Column(SmallInteger, nullable=False, server_default=text("1"))
+    credit_order        = Column(SmallInteger, nullable=True)
     note                = Column(Text, nullable=True)
     created_at          = Column(TIMESTAMP(timezone=True), nullable=False, server_default=func.now())
     updated_at          = Column(TIMESTAMP(timezone=True), nullable=False, server_default=func.now(), onupdate=func.now())
