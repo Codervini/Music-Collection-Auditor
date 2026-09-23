@@ -89,7 +89,7 @@ class VersionTypeLookup(Base):
     __tablename__ = "version_type_lookup"
 
     id          = Column(SmallInteger, primary_key=True, autoincrement=True)
-    mca_pid     = Column(String(1024), nullable=True)
+    alt_type_id = Column(UUID(True), nullable=True)
     name        = Column(String(64), nullable=False, unique=True)
     description = Column(Text, nullable=True)
     created_at  = Column(TIMESTAMP(timezone=True), nullable=False, server_default=func.now())

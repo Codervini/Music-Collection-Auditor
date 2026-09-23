@@ -139,9 +139,9 @@ class Works(Base):
     mca_pid         = Column(String(1024), nullable=True)
     title           = Column(Text, nullable=False)                          # song name
     type_id         = Column(SmallInteger, ForeignKey("work_type_lookup.id"), nullable=True)
-    iswc = Column(ARRAY(String(15)), nullable=True)                     # International Standard Musical Work Code
+    iswc            = Column(ARRAY(String(15)), nullable=True)                     # International Standard Musical Work Code
     language_id     = Column(SmallInteger, ForeignKey("iso_language_lookup.id"), nullable=True)  # replaces raw language string
-    mbid            = Column(String(36), nullable=True)                     # MusicBrainz work ID
+    mbid            = Column(String(36), nullable=True, unique=True)                     # MusicBrainz work ID
     disambiguation  = Column(Text, nullable=True)    
     raw_mb_response = Column(JSONB, nullable=True)
     created_at      = Column(TIMESTAMP(timezone=True), nullable=False, server_default=func.now())
@@ -205,17 +205,16 @@ class Recordings(Base):
     __tablename__ = "recordings"
 
     id                   = Column(UUID(as_uuid=True), primary_key=True, server_default=text("uuidv7()"))
-    mca_pid              = Column(String(1024), nullable=True)
-    work_id              = Column(UUID(as_uuid=True), ForeignKey("works.id"), nullable=False)
-    version_type_id      = Column(SmallInteger, ForeignKey("version_type_lookup.id"), nullable=False)
+    work_id              = Column(UUID(as_uuid=True), ForeignKey("works.id"), nullable=True)
+    version_type_id      = Column(SmallInteger, ForeignKey("version_type_lookup.id"), nullable=True)
     official_title       = Column(Text, nullable=False)                     # canonical credited title
     version_name         = Column(Text, nullable=True)                      # e.g. "Live Aid 1985", "2011 Remaster"
-    title                = Column(Text, nullable=False)                     # full display title incl version
+    display_title        = Column(Text, nullable=True)                     # full display title incl version
     duration_ms          = Column(Integer, nullable=True)
     acoustid_fingerprint = Column(Text, nullable=True)
     acoustid_mbid        = Column(String(36), nullable=True)
-    mb_recording_id      = Column(String(36), nullable=True)                # MusicBrainz recording ID
-    isrc                 = Column(String(12), nullable=True)
+    mb_recording_id      = Column(String(36), nullable=True, unique=True)                # MusicBrainz recording ID
+    isrc                 = Column(ARRAY(String(12)), nullable=True)
     language_id          = Column(SmallInteger, ForeignKey("iso_language_lookup.id"), nullable=True)
     raw_mb_response      = Column(JSONB, nullable=True)
     created_at           = Column(TIMESTAMP(timezone=True), nullable=False, server_default=func.now())
@@ -243,7 +242,6 @@ class RecordingCredits(Base):
     __tablename__ = "recording_credits"
 
     id                  = Column(UUID(as_uuid=True), primary_key=True, server_default=text("uuidv7()"))
-    mca_pid             = Column(String(1024), nullable=False)
     recording_id        = Column(UUID(as_uuid=True), ForeignKey("recordings.id"), nullable=False)
     artist_id           = Column(UUID(as_uuid=True), ForeignKey("artists.id"), nullable=False)
     role_id             = Column(SmallInteger, ForeignKey("artist_roles_lookup.id"), nullable=False)
