@@ -356,7 +356,8 @@ class SeedRecordingsFamily():
         self.artist_tb_data = get_all_values_of_multiple_column_in_tb(Artists,["id","name","mbid"],"created_at")
         self.work_tb_data = get_all_values_of_multiple_column_in_tb(Works,["id","mbid","title"],"created_at")
     def _mb_api_handler(self, entity: str, mbid: str , offset: int, limit:int=100):
-        api = f"https://musicbrainz.org/ws/2/recording?{entity}={mbid}&offset={offset}&limit={limit}"
+        api = f"https://musicbrainz.org/ws/2/recording?{entity}={mbid}&offset={offset}&limit={limit}&fmt=json"
+        print(api)
         return api_request_handler(api, musicbrainz_session, mb_header)
         
         
@@ -364,20 +365,22 @@ class SeedRecordingsFamily():
         auditor = AuditWriter(self.session,seeder_name=inspect.currentframe().f_code.co_name) 
         logger.info(f"---------------------------Starting to seed recordings from {len(self.work_tb_data)} works using Musicbrainz---------------------------")
         for work_count, (id, mbid, title) in enumerate(self.work_tb_data,1):
+            logger.info(f" Beginning to process mbid: {mbid}.")
             recordings = []
+            # print(mbid)
             first_batch = self._mb_api_handler("work",mbid,0,100)
             recordings.extend(first_batch.get("recordings"))
             if first_batch.get("recording-count") > 100:
                 for offset in range(100,first_batch.get("recording-count"),100):
                     next_batch = self._mb_api_handler("work",mbid,offset,100)
                     recordings.extend(next_batch.get("recordings"))
-
             for record in recordings:
                 if not record.get("id"):
                     continue
-                api = f"https://musicbrainz.org/ws/2/recording/{record.get("id")}?inc=isrcs+artist-credits+area-rels+recording-rels+label-rels+artist-rels+url-rels+work-rels"
+                api = f"https://musicbrainz.org/ws/2/recording/{record.get("id")}?inc=isrcs+artist-credits+recording-rels+label-rels+artist-rels+work-rels&fmt=json"
                 record_details = api_request_handler(api, musicbrainz_session, mb_header)
                 data = {}
+
                 for relation in record_details["relations"]:
                     if relation.get("target-type") == "work":
                         if not fetch_id_by_value(Works,"mbid", relation["work"]["id"]):
@@ -393,6 +396,46 @@ class SeedRecordingsFamily():
                             } 
                             insert_multiple_columns_data(Works,work_data)
                         data["work_id"] =  fetch_id_by_value(Works,"mbid", relation["work"]["id"])
+                    elif relation.get("target-type") == "recording":
+                        # Insert related recordings data of the current recording to tb
+                        related_recording = {
+                            "work_id": None,
+                            "version_type_id": fetch_id_by_value(VersionTypeLookup,"alt_type_id", relation.get("type-id")),
+                            "official_title": relation["recording"].get("title"),
+                            "version_name": None,
+                            "display_title": None,
+                            "duration_ms": relation["recording"].get("length"),
+                            "acoustid_fingerprint": None,
+                            "acoustid_mbid": None,
+                            "mb_recording_id": relation["recording"].get("id"),
+                            "isrc": relation["recording"].get("isrcs"),
+                            "language_id": None,
+                            "raw_mb_response": relation,
+                        }
+                        insert_multiple_columns_data(Recordings,related_recording)
+
+                        # Insert the artist credits for the above recording
+                        # TBD
+                    elif relation.get("target-type") == "artist":
+                        # Handled with seperate method
+                        pass 
+                data.update( (k,v) for k,v in {
+                        # "version_type_id": fetch_id_by_value(VersionTypeLookup,"alt_type_id", relation.get("type-id")),
+                        "official_title": record_details.get("title"),
+                        "version_name": None,
+                        "display_title": None,
+                        "duration_ms": record_details.get("length"),
+                        "acoustid_fingerprint": None,
+                        "acoustid_mbid": None,
+                        "mb_recording_id": record_details.get("id"),
+                        "isrc": record_details.get("isrcs"),
+                        "language_id": None,
+                        "raw_mb_response": record_details,
+                    }.items())
+                insert_multiple_columns_data(Recordings,data)
+                
+                
+
 
                     
 
@@ -419,5 +462,7 @@ class SeedRecordingsFamily():
 # SeedArtistsFamily().seed_artist_aliases()     
 # SeedArtistsFamily().seed_artist_link()     
 # SeedWorksFamily().seed_works_mb()
-#SeedWorksFamily().seed_work_credits()
+# SeedWorksFamily().seed_work_credits()
+SeedRecordingsFamily().seed_recordings_from_works_mb()
+
 
