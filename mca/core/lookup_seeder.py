@@ -407,11 +407,41 @@ def seed_credit_source_lookup():
             insert_multiple_columns_data(CreditSourceLookup,{"name":i[0],"source_url":i[1],"description":i[2]})
     else:    
         logger.info(" Credit Source Lookup Seeded")
+
+def seed_version_type_lookup():
+    version_type_data = [
+    # ── Core ──────────────────────────────────────────────────────────────
+    ["other_versions",   "6a76ad99-cc5d-4ebc-a6e4-b2eb2eb3ad98",  "A catch-all for version relationships that don't fit a more specific type."],
+    ["original",         None,                                      "The first official studio release of a recording — the canonical version as originally released by the artist."],
+
+    # ── Other versions ─────────────────────────────────────────────────────
+    ["a_cappella",       "cb5fdd9f-00a1-4996-8c26-833cac6d5523",  "A version featuring only vocal tracks with all instrumental backing removed (e.g. a hip hop vocal track without the beat)."],
+    ["instrumental",     "9fc01a58-7801-4bd2-b07d-61cc7ffacf90",  "A version with all vocals removed, retaining only the musical accompaniment. For karaoke-specific tracks, use karaoke instead."],
+    ["karaoke",          "39a08d0e-26e4-44fb-ae19-906f5fe9435d",  "A version with the main vocals removed, designed for karaoke use. May retain backing vocals. Also labelled as: off vocal, backing track, instrumental."],
+    ["edit",             "ce01b3ac-dd47-4702-9302-085344f96e84",  "A shortened, censored, or otherwise modified version of the original — includes radio edits trimmed for broadcast and any other streamlined cut."],
+    ["music_video",      "ce3de655-7451-44d1-9224-87eb948c205d",  "The audio track corresponding to an official music video release — may differ from the standard single or album mix."],
+    ["remaster",         "b984b8d1-76f9-43d7-aa3e-0b3a46999dea",  "An audio-restored version produced from original source tapes or files, improving fidelity without altering the arrangement."],
+
+    # ── Remixes & compilations ─────────────────────────────────────────────
+    ["compilation",      "1b6311e8-5f81-43b7-8c55-4bbae71ec00c",  "A single long recording that concatenates multiple other recordings without altering their audio material. If tracks are blended or pitch-shifted, use dj_mix instead."],
+    ["dj_mix",           "451076df-61cf-46ab-9921-555cab2f050d",  "A continuous recording assembled by a DJ blending multiple source tracks, typically with pitch and tempo adjustments between them."],
+    ["remix",            "bfbdb55a-b857-473a-8f2e-a9c09e45c3f5",  "A reworked version produced by altering the original multitrack elements — changing arrangement, tempo, instrumentation, or genre feel."],
+    ["samples_material", "9efd9ce9-e702-448b-8e76-641515e8fe62",  "A recording that contains samples drawn from one or more other recordings."],
+    ["mashup",           "579d0b4c-bf77-479d-aa59-a8af1f518958",  "A recording constructed by combining the audio of two or more distinct recordings, typically overlaying vocals from one over the instrumental of another."],
+
+    # ── Commentary ─────────────────────────────────────────────────────────
+    ["commentary",       None,                                      "A recording that provides spoken commentary or annotation on another recording — common on DVD/deluxe releases and director's-cut style editions."],
+]
+    for i in version_type_data:
+            insert_multiple_columns_data(VersionTypeLookup,{"name":i[0],"alt_type_id":i[1],"description":i[2]})
+    else:    
+        logger.info(" Version Type Lookup Seeded")
         
 
 
     
 def seed_all_lookup():
+    seed_version_type_lookup()
     seed_credit_source_lookup()
     seed_artist_roles_lookup()
     seed_work_type_lookup()
