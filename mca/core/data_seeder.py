@@ -355,9 +355,10 @@ class SeedRecordingsFamily():
         self.session = SESSION_MANAGER()
         self.artist_tb_data = get_all_values_of_multiple_column_in_tb(Artists,["id","name","mbid"],"created_at")
         self.work_tb_data = get_all_values_of_multiple_column_in_tb(Works,["id","mbid","title"],"created_at")
+        
     def _mb_api_handler(self, entity: str, mbid: str , offset: int, limit:int=100):
         api = f"https://musicbrainz.org/ws/2/recording?{entity}={mbid}&offset={offset}&limit={limit}&fmt=json"
-        print(api)
+        # print(api)
         return api_request_handler(api, musicbrainz_session, mb_header)
 
     def _get_all_recordings_using_artist_or_work_mbid(self,artist_mbid: str = None, work_mbid: str = None):
@@ -372,23 +373,34 @@ class SeedRecordingsFamily():
             return
         recordings = []
         first_batch = self._mb_api_handler(entity,mbid,0,100)
+        if first_batch:
+            logger.info(" Initial batch of recordings fetched.")
         recordings.extend(first_batch.get("recordings"))
         if first_batch.get("recording-count") > 100:
+            logger.info(" Additional batch of recordings present, fetching...")
             for offset in range(100,first_batch.get("recording-count"),100):
                 next_batch = self._mb_api_handler(entity,mbid,offset,100)
+                if next_batch:
+                    logger.info(f" {offset//100}/{first_batch.get("recording-count")//100} additional batch of recordings fetched")
                 recordings.extend(next_batch.get("recordings"))
+        else:
+            logger.info(" No additional batch of recordings present.")
 
         return recordings
     
     def _seed_recordings(self,recordings: list[dict], auditor: AuditWriter):
-        for record in recordings:
+        for record_count, record in enumerate(recordings,1):
+            logger.info(f" Processing {record_count}/{len(recordings)} recordings for seeding")
             if not record.get("id"):
+                logger.warning(f" Recording doesnt have MBID, skipping...")
                 continue
+            logger.info(f" Fetching relations for the record | mbid: {record.get("id")}")
             api = f"https://musicbrainz.org/ws/2/recording/{record.get("id")}?inc=isrcs+artist-credits+recording-rels+label-rels+artist-rels+work-rels&fmt=json"
             record_details = api_request_handler(api, musicbrainz_session, mb_header)
             data = {}
 
-            for relation in record_details["relations"]:
+            for relation_count, relation in enumerate(record_details["relations"],1):
+                logger.info(f" Processing {relation_count}/{len(record_details["relations"])} relations of recording | mbid: {record.get("id")}")
                 if relation.get("target-type") == "work":
                     if not fetch_id_by_value(Works,"mbid", relation["work"]["id"]):
                         # If such work doesn't exist in Works table
@@ -440,24 +452,20 @@ class SeedRecordingsFamily():
                     "raw_mb_response": record_details,
                 }.items())
             insert_multiple_columns_data(Recordings,data)
-            
-            
-        
-        
+  
     def seed_recordings_from_works_mb(self):
         auditor = AuditWriter(self.session,seeder_name=inspect.currentframe().f_code.co_name) 
         logger.info(f"---------------------------Starting to seed recordings for {len(self.work_tb_data)} Works using Musicbrainz---------------------------")
         for work_count, (id, mbid, title) in enumerate(self.work_tb_data,1):
-            logger.info(f" Beginning to process mbid: {mbid}.")
+            logger.info(f" Beginning to process {work_count}/{len(self.work_tb_data)} works for recordings | mbid: {mbid}.")
             recordings = self._get_all_recordings_using_artist_or_work_mbid(work_mbid=mbid)
             self._seed_recordings(recordings,auditor)
             
-
     def seed_recordings_from_artists_mb(self):
         auditor = AuditWriter(self.session,seeder_name=inspect.currentframe().f_code.co_name) 
         logger.info(f"---------------------------Starting to seed recordings for {len(self.work_tb_data)} Artists using Musicbrainz---------------------------")
         for artist_count, (id,name,mbid) in enumerate(self.artist_tb_data,1):
-            logger.info(f" Beginning to process mbid: {mbid}.")
+            logger.info(f" Beginning to process {artist_count}/{len(self.artist_tb_data)} artist for recordings | mbid: {mbid}.")
             recordings = self._get_all_recordings_using_artist_or_work_mbid(artist_mbid=mbid)
             self._seed_recordings(recordings,auditor)
 
