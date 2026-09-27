@@ -355,7 +355,7 @@ class SeedRecordingsFamily():
         self.session = SESSION_MANAGER()
         self.artist_tb_data = get_all_values_of_multiple_column_in_tb(Artists,["id","name","mbid"],"created_at")
         self.work_tb_data = get_all_values_of_multiple_column_in_tb(Works,["id","mbid","title"],"created_at")
-        
+
     def _mb_api_handler(self, entity: str, mbid: str , offset: int, limit:int=100):
         api = f"https://musicbrainz.org/ws/2/recording?{entity}={mbid}&offset={offset}&limit={limit}&fmt=json"
         # print(api)
@@ -469,9 +469,68 @@ class SeedRecordingsFamily():
             recordings = self._get_all_recordings_using_artist_or_work_mbid(artist_mbid=mbid)
             self._seed_recordings(recordings,auditor)
 
+    def seed_recording_credits_from_mb(self):
+        auditor = AuditWriter(self.session,seeder_name=inspect.currentframe().f_code.co_name) 
+        records_table = get_all_values_of_multiple_column_in_tb(Recordings,["id","official_title","mb_recording_id"],"created_at")
+        for record_count, (id, title, mbid) in enumerate(records_table,1):
+            api = f"https://musicbrainz.org/ws/2/recording/{mbid}?inc=isrcs+artist-credits+recording-rels+label-rels+artist-rels+work-rels&fmt=json"
+            record_details = api_request_handler(api, musicbrainz_session, mb_header)
 
-            
-            
+            #Main Artist
+            for artist in record_details["artist-credit"]:
+                artist_id = fetch_id_by_value(Artists,"mbid",artist["artist"]["id"])
+                if not artist_id:
+                    artist_data = {
+                        "name":artist["artist"]["name"],
+                        "sort_name":artist["artist"]["sort-name"],
+                        "type_id":fetch_id_by_value(ArtistTypeLookup,"alt_type_id",artist["artist"]["type-id"]),
+                        "disambiguation": artist["artist"]["disambiguation"],
+                        "country_id": fetch_id_by_value(CountryLookup, "alpha2", artist["artist"]["country"]),
+                        "mbid":artist["artist"]["id"]
+                    }
+                    insert_multiple_columns_data(Artists,artist_data)
+                    artist_id = fetch_id_by_value(Artists,"mbid",artist["artist"]["id"])
+                artist_credit_data = {
+                    "recording_id":id,
+                    "artist_id": artist_id,
+                    "role_id": fetch_id_by_value(ArtistRolesLookup,"name","main_artist"),
+                    "credit_source_id": fetch_id_by_value(CreditSourceLookup,"name","musicbrainz"),
+                    "credit_source_url":api,
+                    "credit_order":None,
+                    "note": None
+                }
+                insert_multiple_columns_data(RecordingCredits,artist_credit_data)
+
+            # All Related artists
+
+            for relation in record_details["relations"]:
+                if relation.get("target-type") != "artist":
+                    continue
+                artist_id = fetch_id_by_value(Artists,"mbid",relation["artist"]["id"])
+                if not artist_id:
+                    artist_data = {
+                        "name":relation["artist"]["name"],
+                        "sort_name":relation["artist"]["sort-name"],
+                        "type_id":fetch_id_by_value(ArtistTypeLookup,"alt_type_id",relation["artist"]["type-id"]),
+                        "disambiguation": relation["artist"]["disambiguation"],
+                        "country_id": fetch_id_by_value(CountryLookup, "alpha2", relation["artist"]["country"]),
+                        "mbid":relation["artist"]["id"]
+                    }
+                    insert_multiple_columns_data(Artists,artist_data)
+                    artist_id = fetch_id_by_value(Artists,"mbid",relation["artist"]["id"])
+                print(relation.get("type"))
+                rel_artist_credit_data = {
+                    "recording_id":id,
+                    "artist_id": artist_id,
+                    "role_id": fetch_id_by_value(ArtistRolesLookup,"name",relation.get("type")),
+                    "credit_source_id": fetch_id_by_value(CreditSourceLookup,"name","musicbrainz"),
+                    "credit_source_url":api,
+                    "credit_order":None,
+                    "note": None
+                }
+                insert_multiple_columns_data(RecordingCredits,rel_artist_credit_data)
+
+        
 
 
 # SeedArtistsFamily().seed_artists(10,1)       
@@ -480,6 +539,6 @@ class SeedRecordingsFamily():
 # SeedArtistsFamily().seed_artist_link()     
 # SeedWorksFamily().seed_works_mb()
 # SeedWorksFamily().seed_work_credits()
-SeedRecordingsFamily().seed_recordings_from_works_mb()
-
+# SeedRecordingsFamily().seed_recordings_from_works_mb()
+SeedRecordingsFamily().seed_recording_credits_from_mb()
 
