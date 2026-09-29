@@ -3,7 +3,7 @@ from dotenv import dotenv_values
 from pathlib import Path
 from pprint import pprint
 from mca.core.db_butler import ( insert_multiple_columns_data , fetch_id_by_value , get_all_values_of_a_column_in_tb ,
-                                update_multiple_columns_data, get_all_values_of_multiple_column_in_tb) 
+                                update_multiple_columns_data, get_all_values_of_multiple_column_in_tb)
 from schema.models.file_universe import *
 from schema.lookup.file_universe_lookup import *
 from mca.core.logger import set_logger
@@ -43,13 +43,13 @@ def discover_similar_artists_lastfm(artist,mbid = "",limit:int = 50):
     with open(file=Path("data","log",f"sussy similar artist seed {date.today()}.csv"), mode="a") as f:
         writer = csv.writer(f)
         for i in response["similarartists"]["artist"]:
-            if i.get("name").find(" & ") == -1: 
+            if i.get("name").find(" & ") == -1:
                 data[i.get("name")] = [i.get("mbid", ""),i.get("match","")]
             else:
                 writer.writerow([i.get("name"),i.get("mbid", ""),i.get("match","")])
-    logger.info(f"Discovered {len(data)} similar artists for {artist}")    
+    logger.info(f"Discovered {len(data)} similar artists for {artist}")
     return data
-    
+
 
 class SeedArtistsFamily:
     def __init__(self):
@@ -61,14 +61,14 @@ class SeedArtistsFamily:
     def _init_data(self):
         self.id_tb_data = get_all_values_of_multiple_column_in_tb(Artists,["id","name","mbid"],"created_at")
     def _validate_artists_data_completion(self,id):
-        data = get_all_values_of_multiple_column_in_tb(Artists,[ 'name', 'sort_name', 'type_id', 
-                                                                'gender_id', 'mbid', 'isni', 'country_id', 'born_or_formed', 
+        data = get_all_values_of_multiple_column_in_tb(Artists,[ 'name', 'sort_name', 'type_id',
+                                                                'gender_id', 'mbid', 'isni', 'country_id', 'born_or_formed',
                                                                 'died_or_disbanded', 'disambiguation', 'raw_mb_response']
                                                                 )
         for i in data:
             if not data[i]:
                 return False
-        return True 
+        return True
 
     def seed_artists(self,artist_discovery_limit:int=50, similar_artist_discovery_limit:int=969):
         auditor = AuditWriter(self.session,seeder_name=inspect.currentframe().f_code.co_name)
@@ -93,7 +93,7 @@ class SeedArtistsFamily:
                 else:
                     auditor.record(Artists.__tablename__,v[0],status="failed")
         auditor.finish()
-    def seed_artist_props_musicbrainz(self):      
+    def seed_artist_props_musicbrainz(self):
         auditor = AuditWriter(self.session,seeder_name=inspect.currentframe().f_code.co_name)
         data_counter = 0
         for id, name, mbid in self.id_tb_data:
@@ -112,7 +112,7 @@ class SeedArtistsFamily:
                                         "raw_mb_response": parsed["raw_mb_response"]}
                     logger.debug("Fetched from cache: %s",mbid)
                     print("Fetched from cache: ",mbid)
-                elif mbid: 
+                elif mbid:
                     api = f"https://musicbrainz.org/ws/2/artist/{mbid}?fmt=json&inc=aliases+url-rels+tags+genres+annotation+ratings"
                     data = api_request_handler(api, musicbrainz_session, mb_header)
                     if data:
@@ -138,13 +138,13 @@ class SeedArtistsFamily:
                         if i not in ignore and not columns_data[i]:
                             columns_data["data_complete"] = False
                             break
-                    updated = update_multiple_columns_data(Artists,"mbid",mbid,columns_data) 
+                    updated = update_multiple_columns_data(Artists,"mbid",mbid,columns_data)
                     if updated:
                         auditor.record(Artists.__tablename__,str(id),status="inserted")
                     else:
                         auditor.record(Artists.__tablename__,str(id),status="failed")
-                    logger.info(f"UPDATED Artist {name} : {mbid} props ")    
-                               
+                    logger.info(f"UPDATED Artist {name} : {mbid} props ")
+
                 columns_data = None
             except Exception as e:
                     logger.error("Failed for mbid %s: %s", mbid, e, exc_info=True)
@@ -163,7 +163,7 @@ class SeedArtistsFamily:
             parsed =  pc.get("musicbrainz",mbid)
             # pprint(parsed)
             # time.sleep(2)
-            
+
             if parsed and len(parsed["raw_mb_response"]["aliases"]) > 0:
                 aliases = parsed["raw_mb_response"]["aliases"]
                 for alias in aliases:
@@ -209,12 +209,12 @@ class SeedArtistsFamily:
                     if link.get("target-type",None) == "url" and link["url"].get("resource"):
                         data = {"artist_id": id,
                                 "link_type_id": (fetch_id_by_value(LinkTypeLookup,"alt_type_id",link.get("type-id")) or fetch_id_by_value(LinkTypeLookup,"name",link.get("type","").title())),
-                                "url": link["url"].get("resource"), 
+                                "url": link["url"].get("resource"),
                         }
                         # pprint(data)
                         if not data["link_type_id"]:
                             insert_multiple_columns_data(LinkTypeLookup,{"name":link.get("type","").title(),
-                                                                         "base_url":"/".join(data["url"].split("/")[:3]+[""]),   
+                                                                         "base_url":"/".join(data["url"].split("/")[:3]+[""]),
                                                                          "ingestion_source":inspect.currentframe().f_code.co_name})
                             data["link_type_id"] = fetch_id_by_value(LinkTypeLookup,"name",link.get("type","").title())
                             logger.warning(f"New URL name found '{link.get("type","").title()}' for {name}:{id} and inserting new lookup record!")
@@ -236,12 +236,12 @@ class SeedWorksFamily():
     def __init__(self):
         self.session = SESSION_MANAGER()
         self.artist_tb_data = get_all_values_of_multiple_column_in_tb(Artists,["id","name","mbid"],"created_at")
-        self.work_tb_data = get_all_values_of_multiple_column_in_tb(Works,["id","mbid","title","type_id","iswc","language_id"],"created_at") 
+        self.work_tb_data = get_all_values_of_multiple_column_in_tb(Works,["id","mbid","title","type_id","iswc","language_id"],"created_at")
     def _get_work_data_from_mb(self,mbid,offset,limit=100):
         api = f"https://musicbrainz.org/ws/2/work?artist={mbid}&offset={offset}&limit={limit}&fmt=json"
         return api_request_handler(api, musicbrainz_session, mb_header)
     def seed_works_mb(self):
-        auditor = AuditWriter(self.session,seeder_name=inspect.currentframe().f_code.co_name) 
+        auditor = AuditWriter(self.session,seeder_name=inspect.currentframe().f_code.co_name)
         cumulative_works_fetch_count = 0
         try:
             for position, (id, name, mbid) in enumerate(self.artist_tb_data, start=1):
@@ -260,7 +260,7 @@ class SeedWorksFamily():
                             logger.warning(f"MusicBrainz artist MBID is invalid, recording for review | name={name} | MBID={mbid}")
                             # WIP: Handle such invalid cases by recording for future review
                             continue
-                        raise 
+                        raise
                     works.extend([work for work in initial_data["works"]])
                     logger.info(f"Found {initial_data['work-count']} works of {name} | MBID={mbid}")
                     for offset in range(100,initial_data["work-count"],100):
@@ -282,15 +282,15 @@ class SeedWorksFamily():
                                     "language_id": fetch_id_by_value(ISOLanguageLookup,"iso_639_3", work.get("language")),
                                     "mbid":work.get("id"),
                                     "disambiguation":work.get("disambiguation",None),
-                                    "raw_mb_response":initial_data                            
+                                    "raw_mb_response":initial_data
                             }
-                            inserted = insert_multiple_columns_data(Works,data) 
+                            inserted = insert_multiple_columns_data(Works,data)
                             if inserted:
                                 auditor.record(Works.__tablename__,str(id),status="inserted")
                             else:
                                 auditor.record(Works.__tablename__,str(id),status="failed")
                         else:
-                            logger.warning(f"Invalid work {work_count}/{len(works)}, skipping")  
+                            logger.warning(f"Invalid work {work_count}/{len(works)}, skipping")
                     else:
                         logger.info(f"Processed {work_count}/{len(works)} works of {name}:{id}")
                 logger.info(f"Fetched works {cumulative_works_fetch_count} times for {position} artists as of now")
@@ -301,7 +301,7 @@ class SeedWorksFamily():
         auditor.finish()
 
     def seed_work_credits(self):
-        auditor = AuditWriter(self.session,seeder_name=inspect.currentframe().f_code.co_name) 
+        auditor = AuditWriter(self.session,seeder_name=inspect.currentframe().f_code.co_name)
         total_work_credits = 0
         # ["id","mbid","title","type_id","iswc","language_id"]
         for count , work in enumerate(self.work_tb_data,1):
@@ -339,13 +339,13 @@ class SeedWorksFamily():
                     # "credit_order": None,
                     "note": None
                 }
-                inserted = insert_multiple_columns_data(WorkCredits,data) 
+                inserted = insert_multiple_columns_data(WorkCredits,data)
                 if inserted:
                     auditor.record(Works.__tablename__,str(id),status="inserted")
                     total_work_credits +=1
                 else:
                     auditor.record(Works.__tablename__,str(id),status="failed")
-                
+
             logger.info(f" {total_work_credits} Work Credits for {len(self.work_tb_data)} seeded succesfully.")
 
         auditor.finish()
@@ -387,7 +387,7 @@ class SeedRecordingsFamily():
             logger.info(" No additional batch of recordings present.")
 
         return recordings
-    
+
     def _seed_recordings(self,recordings: list[dict], auditor: AuditWriter):
         for record_count, record in enumerate(recordings,1):
             logger.info(f" Processing {record_count}/{len(recordings)} recordings for seeding")
@@ -411,8 +411,8 @@ class SeedRecordingsFamily():
                             "language_id": fetch_id_by_value(ISOLanguageLookup,"iso_639_3", relation["work"].get("language")),
                             "mbid":relation["work"].get("id"),
                             "disambiguation":relation["work"].get("disambiguation",None),
-                            "raw_mb_response":relation["work"]                            
-                        } 
+                            "raw_mb_response":relation["work"]
+                        }
                         insert_multiple_columns_data(Works,work_data)
                     data["work_id"] =  fetch_id_by_value(Works,"mbid", relation["work"]["id"])
                 elif relation.get("target-type") == "recording":
@@ -437,7 +437,7 @@ class SeedRecordingsFamily():
                     # TBD
                 elif relation.get("target-type") == "artist":
                     # Handled with seperate method
-                    pass 
+                    pass
             data.update( (k,v) for k,v in {
                     # "version_type_id": fetch_id_by_value(VersionTypeLookup,"alt_type_id", relation.get("type-id")),
                     "official_title": record_details.get("title"),
@@ -452,17 +452,17 @@ class SeedRecordingsFamily():
                     "raw_mb_response": record_details,
                 }.items())
             insert_multiple_columns_data(Recordings,data)
-  
+
     def seed_recordings_from_works_mb(self):
-        auditor = AuditWriter(self.session,seeder_name=inspect.currentframe().f_code.co_name) 
+        auditor = AuditWriter(self.session,seeder_name=inspect.currentframe().f_code.co_name)
         logger.info(f"---------------------------Starting to seed recordings for {len(self.work_tb_data)} Works using Musicbrainz---------------------------")
         for work_count, (id, mbid, title) in enumerate(self.work_tb_data,1):
             logger.info(f" Beginning to process {work_count}/{len(self.work_tb_data)} works for recordings | mbid: {mbid}.")
             recordings = self._get_all_recordings_using_artist_or_work_mbid(work_mbid=mbid)
             self._seed_recordings(recordings,auditor)
-            
+
     def seed_recordings_from_artists_mb(self):
-        auditor = AuditWriter(self.session,seeder_name=inspect.currentframe().f_code.co_name) 
+        auditor = AuditWriter(self.session,seeder_name=inspect.currentframe().f_code.co_name)
         logger.info(f"---------------------------Starting to seed recordings for {len(self.work_tb_data)} Artists using Musicbrainz---------------------------")
         for artist_count, (id,name,mbid) in enumerate(self.artist_tb_data,1):
             logger.info(f" Beginning to process {artist_count}/{len(self.artist_tb_data)} artist for recordings | mbid: {mbid}.")
@@ -470,7 +470,7 @@ class SeedRecordingsFamily():
             self._seed_recordings(recordings,auditor)
 
     def seed_recording_credits_from_mb(self):
-        auditor = AuditWriter(self.session,seeder_name=inspect.currentframe().f_code.co_name) 
+        auditor = AuditWriter(self.session,seeder_name=inspect.currentframe().f_code.co_name)
         records_table = get_all_values_of_multiple_column_in_tb(Recordings,["id","official_title","mb_recording_id"],"created_at")
         for record_count, (id, title, mbid) in enumerate(records_table,1):
             api = f"https://musicbrainz.org/ws/2/recording/{mbid}?inc=isrcs+artist-credits+recording-rels+label-rels+artist-rels+work-rels&fmt=json"
@@ -529,16 +529,68 @@ class SeedRecordingsFamily():
                     "note": None
                 }
                 insert_multiple_columns_data(RecordingCredits,rel_artist_credit_data)
+        auditor.finish()
 
-        
+class SeedReleasesFamily:
+	def __init__(self) -> None:
+		self.recordings_tb_data = get_all_values_of_multiple_column_in_tb(Recordings,["id","official_title","mbid"])
+		self.session = SESSION_MANAGER()
+	def _fetch_releases(self,mbid,offset,limit=100):
+		api=f"https://musicbrainz.org/ws/2/release?recording={mbid}&offset={offset}&limit={limit}&inc=media&fmt=json"
+		return api_request_handler(api,musicbrainz_session,mb_header)
+	def _releases(self,mbid):
+		releases = []
+		first_batch = self._fetch_releases(mbid,0,100)
+		releases.extend(first_batch.get("releases"))
+		if first_batch.get("release-count") > 100:
+			for offset in range(100,first_batch.get("release-count"),100):
+				additional_batch = self._fetch_releases(mbid,offset,100)
+				releases.extend(additional_batch.get("releases"))
+		return releases
+
+	def seed_releases_and_media_from_recordings(self):
+		auditor = AuditWriter(self.session,seeder_name=inspect.currentframe().f_code.co_name)
+		for recording_count , (id,name,mbid) in enumerate(self.recordings_tb_data,1):
+			if not mbid:
+				logger.warning(f" Empty MBID, skipping | id: {id}")
+				continue
+			releases = self._releases(mbid)
+
+			for release in releases:
+				# Release
+				data = {
+	    			"title":release.get("title"),
+				    # "type_id": fetch_id_by_value(ReleaseTypeLookup,"alt_type_id",release.get("")) # TBD
+				    "date": release.get("date"),
+				    # label:
+				    "country_id": fetch_id_by_value(CountryLookup, "alpha2", release.get("country")),
+				    "barcode": release.get("barcode"),
+				    "mb_release_id": release.get("id"),
+				    # "total_discs"
+				}
+
+				release_media = release["media"]
+				release_id = fetch_id_by_value(Releases,"mbid",mbid)
+
+				# Release Media
+				if release_id and release_media:
+					for media in release_media:
+						data = {
+							"release_id": release_id,
+						    "title": media.get("title"),
+						    "track_count": media.get("track-count"),
+						    "position" : media.get("position"),
+						    "mbid": media.get("id"),
+						    "format":media.get("format")
+						}
+						insert_multiple_columns_data(ReleaseMedia,data)
 
 
-# SeedArtistsFamily().seed_artists(10,1)       
-# SeedArtistsFamily().seed_artist_props_musicbrainz()  
-# SeedArtistsFamily().seed_artist_aliases()     
-# SeedArtistsFamily().seed_artist_link()     
+# SeedArtistsFamily().seed_artists(10,1)
+# SeedArtistsFamily().seed_artist_props_musicbrainz()
+# SeedArtistsFamily().seed_artist_aliases()
+# SeedArtistsFamily().seed_artist_link()
 # SeedWorksFamily().seed_works_mb()
 # SeedWorksFamily().seed_work_credits()
 # SeedRecordingsFamily().seed_recordings_from_works_mb()
 SeedRecordingsFamily().seed_recording_credits_from_mb()
-
