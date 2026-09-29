@@ -142,7 +142,7 @@ class Works(Base):
     iswc            = Column(ARRAY(String(15)), nullable=True)                     # International Standard Musical Work Code
     language_id     = Column(SmallInteger, ForeignKey("iso_language_lookup.id"), nullable=True)  # replaces raw language string
     mbid            = Column(String(36), nullable=True, unique=True)                     # MusicBrainz work ID
-    disambiguation  = Column(Text, nullable=True)    
+    disambiguation  = Column(Text, nullable=True)
     raw_mb_response = Column(JSONB, nullable=True)
     created_at      = Column(TIMESTAMP(timezone=True), nullable=False, server_default=func.now())
     updated_at      = Column(TIMESTAMP(timezone=True), nullable=False, server_default=func.now(), onupdate=func.now())
@@ -171,7 +171,7 @@ class WorkCredits(Base):
     artist_id           = Column(UUID(as_uuid=True), ForeignKey("artists.id"), nullable=False)
     role_id             = Column(SmallInteger, ForeignKey("artist_roles_lookup.id"), nullable=True)
     credit_source_id    = Column(SmallInteger, ForeignKey("credit_source_lookup.id"), nullable=True)
-    credit_source_url   = Column(Text, nullable=True)                     
+    credit_source_url   = Column(Text, nullable=True)
     note                = Column(Text, nullable=True)
     created_at          = Column(TIMESTAMP(timezone=True), nullable=False, server_default=func.now())
     updated_at          = Column(TIMESTAMP(timezone=True), nullable=False, server_default=func.now(), onupdate=func.now())
@@ -275,20 +275,17 @@ class Releases(Base):
     __tablename__ = "releases"
 
     id              = Column(UUID(as_uuid=True), primary_key=True, server_default=text("uuidv7()"))
-    mca_pid         = Column(String(1024), nullable=True)
     title           = Column(Text, nullable=False)
     type_id         = Column(SmallInteger, ForeignKey("release_type_lookup.id"), nullable=True)
-    year            = Column(SmallInteger, nullable=True)
     date            = Column(Date, nullable=True)
-    label           = Column(Text, nullable=True)
+    # label           = Column(Text, nullable=True)
     country_id      = Column(SmallInteger, ForeignKey("country_lookup.id"), nullable=True)    # replaces raw country string
     barcode         = Column(String(32), nullable=True)
-    mb_release_id   = Column(String(36), nullable=True)
-    artwork_url     = Column(Text, nullable=True)
-    artwork_local   = Column(Text, nullable=True)
-    total_tracks    = Column(SmallInteger, nullable=True)
+    mbid   			= Column(String(36), nullable=True)
+    # artwork_url     = Column(Text, nullable=True)
+    # artwork_local   = Column(Text, nullable=True)
+    # raw_mb_response = Column(JSONB, nullable=True)
     total_discs     = Column(SmallInteger, nullable=True)
-    raw_mb_response = Column(JSONB, nullable=True)
     created_at      = Column(TIMESTAMP(timezone=True), nullable=False, server_default=func.now())
     updated_at      = Column(TIMESTAMP(timezone=True), nullable=False, server_default=func.now(), onupdate=func.now())
     updated_by      = Column(String(64), ForeignKey("machines.id"), nullable=True)
@@ -296,7 +293,6 @@ class Releases(Base):
     __table_args__ = (
         Index("ix_releases_mb_release_id",       "mb_release_id"),
         Index("ix_releases_title",      "title"),
-        Index("ix_releases_year",       "year"),
         Index("ix_releases_type_id",    "type_id"),
         Index("ix_releases_barcode",    "barcode"),
         Index("ix_releases_country_id", "country_id"),
@@ -312,7 +308,6 @@ class ReleaseCredits(Base):
     __tablename__ = "release_credits"
 
     id                  = Column(UUID(as_uuid=True), primary_key=True, server_default=text("uuidv7()"))
-    mca_pid             = Column(String(1024), nullable=False)
     release_id          = Column(UUID(as_uuid=True), ForeignKey("releases.id"), nullable=False)
     artist_id           = Column(UUID(as_uuid=True), ForeignKey("artists.id"), nullable=False)
     role_id             = Column(SmallInteger, ForeignKey("artist_roles_lookup.id"), nullable=False)
@@ -332,6 +327,33 @@ class ReleaseCredits(Base):
         Index("ix_release_credits_credit_source_id",    "credit_source_id"),
     )
 
+class ReleaseMedia(Base):
+    """
+    Released media for this release.
+    One row per media per release.
+    """
+    __tablename__ = "release_media"
+
+    id                  = Column(UUID(as_uuid=True), primary_key=True, server_default=text("uuidv7()"))
+    release_id          = Column(UUID(as_uuid=True), ForeignKey("releases.id"), nullable=False)
+    title    			= Column(Text,nullable=True)
+    track_count			= Column(SmallInteger,nullable=True)
+    position 			= Column(SmallInteger,nullable=True)
+    mbid				= Column(UUID(True),nullable=True)
+    format              = Column(SmallInteger, ForeignKey("media_format_lookup.id"), nullable=True)
+    created_at          = Column(TIMESTAMP(timezone=True), nullable=False, server_default=func.now())
+    updated_at          = Column(TIMESTAMP(timezone=True), nullable=False, server_default=func.now(), onupdate=func.now())
+    updated_by          = Column(String(64), ForeignKey("machines.id"), nullable=True)
+
+    __table_args__ = (
+        UniqueConstraint("release_id", "mbid", name="uq_release_media"),
+        Index("ix_release_media_release_id",          "release_id"),
+        Index("ix_release_media_mbid",           		"mbid"),
+    )
+
+class CoverArt:
+	# ~TBD
+	pass
 
 # ══════════════════════════════════════════════════════════════════════════════
 # GROUP 6 — TRACKS
