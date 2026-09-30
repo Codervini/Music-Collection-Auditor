@@ -1,15 +1,15 @@
-from dotenv import dotenv_values
 from pathlib import Path
 from pprint import pprint
-from mca.core.db_butler import insert_multiple_columns_data , fetch_id_by_value
-# from schema.models.file_universe import Artists
-from schema.lookup.file_universe_lookup import *
-from mca.core.logger import set_logger
-from mca_tools.utils import api_request_handler
-import csv
-from babel.localedata import locale_identifiers
+
 from babel.core import Locale, UnknownLocaleError
+from babel.localedata import locale_identifiers
+from dotenv import dotenv_values
+
+from mca.core.db_butler import fetch_id_by_value, insert_multiple_columns_data
+from mca.core.logger import set_logger
 from mca_tools.cacher.api_cacher import get_session
+from mca_tools.utils import api_request_handler
+from schema.lookup.file_universe_lookup import *
 
 CONFIG_CONSTANTS = dotenv_values(Path("config",".env"))
 logger = set_logger(__name__)
@@ -33,8 +33,7 @@ def seed_country_lookup_restcountries():
                             "continent":", ".join(data["data"]["objects"][i]["continents"])
                             }
             insert_multiple_columns_data(CountryLookup,columns_data)
-    else:
-        logger.info(" Country Lookup Seeded")
+    logger.info(" Country Lookup Seeded")
 
 def seed_gender_lookup():
     genders = [
@@ -197,7 +196,7 @@ def seed_link_types_lookup():
 
     # Fallback
     ("Other","https://","External link that does not fit any other category",None,"Codervini"),
-]
+    ]
     for i in link_types:
             insert_multiple_columns_data(LinkTypeLookup,{"name":i[0],"base_url":i[1],"description":i[2],"alt_type_id":i[3],"ingestion_source":i[4]})
     logger.info(" Links Type Lookup Seeded")
@@ -239,8 +238,9 @@ def seed_work_type_lookup():
     logger.info(" Work Type Lookup Seeded")
 
 def seed_iso_language_lookup():
-    import pycountry
     import importlib.metadata
+
+    import pycountry
 
     version = importlib.metadata.version("pycountry")
     ingestion_source = f"pycountry v{version}: iso639-3"
@@ -279,13 +279,15 @@ def seed_artist_roles_lookup():
     # --- RECORDING ---
     ("performer",           "General performer credit on a recording when no instrument or vocal type is specified."),
     ("vocalist",            "Performed vocals on a recording."),
-    ("instrumentalist",     "Performed one or more instruments on a recording."),
+    ("instrument",          "Performed one or more instruments on a recording."),
+    ("vocal",               "An artist that performed vocals on this recording."),
     ("conductor",           "Conducted an orchestra, band, or choir on a recording."),
     ("orchestra",           "An orchestra that performed on a recording."),
     ("chorus_master",       "Directed a choir that performed on a recording."),
     ("concertmaster",       "Led the orchestra or band as principal player on a recording."),
     ("audio_director",      "Responsible for the creative realisation of an audio project such as an audio drama or audiobook."),
     ("producer",            "Responsible for the creative and practical day-to-day aspects of making a recording."),
+    ("engineer",            "This describes an engineer who performed a general engineering role."),
     ("mix_engineer",        "Mixed the recorded tracks into a final release-ready piece using a mixing console."),
     ("mastering_engineer",  "Mastered the audio for release. MB tracks this at release level."),
     ("recording_engineer",  "Captured the performance to tape or digital medium."),
@@ -333,9 +335,9 @@ def seed_artist_roles_lookup():
     ]
     for i in ARTIST_ROLES:
         insert_multiple_columns_data(ArtistRolesLookup,{"name":i[0],"description":i[1]})
-    else:    
-        logger.info(" Artist Roles Type Lookup Seeded")
-    
+
+    logger.info(" Artist Roles Type Lookup Seeded")
+
 def seed_credit_source_lookup():
     CREDIT_SOURCE_SEED = [
     # --- Core music metadata DBs ---
@@ -405,8 +407,8 @@ def seed_credit_source_lookup():
     ]
     for i in CREDIT_SOURCE_SEED:
             insert_multiple_columns_data(CreditSourceLookup,{"name":i[0],"source_url":i[1],"description":i[2]})
-    else:    
-        logger.info(" Credit Source Lookup Seeded")
+
+    logger.info(" Credit Source Lookup Seeded")
 
 def seed_version_type_lookup():
     version_type_data = [
@@ -434,23 +436,80 @@ def seed_version_type_lookup():
 ]
     for i in version_type_data:
             insert_multiple_columns_data(VersionTypeLookup,{"name":i[0],"alt_type_id":i[1],"description":i[2]})
-    else:    
-        logger.info(" Version Type Lookup Seeded")
-        
+    logger.info(" Version Type Lookup Seeded")
 
 
-    
+def seed_release_type_lookup():
+	RELEASE_TYPE_LOOKUP_DATA = [
+	    # ── PRIMARY TYPES ─────────────────────────────────────────────────────────
+	    (None, "Album", "Long Play (LP) release generally consisting of previously unreleased material."),
+	    (None, "Single", "A release with one main song and possibly additional tracks or remixes."),
+	    (None, "EP", "Extended Play release, shorter than a full LP. Tracks are usually exclusive to the EP."),
+	    (None, "Broadcast", "Episodic release originally broadcast via radio, television, or the Internet, including podcasts."),
+	    (None, "Other", "Any release that does not fit or cannot decisively be placed in any other primary type category."),
+
+	    # ── SECONDARY TYPES ───────────────────────────────────────────────────────
+	    (None, "Compilation", "A collection of recordings from various sources; e.g. best-of, retrospective, rarities, or various-artists collections. Use in addition to, not instead of, other types."),
+	    (None, "Soundtrack", "The musical score to a movie, TV series, stage show, video game, or other medium."),
+	    (None, "Spokenword", "Non-music spoken word releases."),
+	    (None, "Interview", "A release containing an interview, generally with an artist."),
+	    (None, "Audiobook", "A book read by a narrator without music."),
+	    (None, "Audio Drama", "An audio-only performance of a play, usually with multiple performers rather than a single narrator."),
+	    (None, "Live", "A release that was recorded live."),
+	    (None, "Remix", "A release that primarily contains remixed material."),
+	    (None, "DJ-mix", "A sequence of recordings blended into a continuous flow of music by a DJ."),
+	    (None, "Mixtape/Street", "Promotional release common in rap/hip-hop. Often not label-sanctioned."),
+	    (None, "Demo", "Distributed for limited circulation; used to pitch music to labels, producers, or other artists."),
+	    (None, "Field Recording", "A release mostly consisting of field recordings such as nature sounds or city/industrial noise."),
+
+	    # ── RELEASE-GROUP ↔ RELEASE-GROUP RELATIONSHIP TYPES ─────────────────────
+	    ("38278b3b-30e6-304c-b0db-5ba701eb0268", "Covers and Versions", None),
+	    ("62beff0a-679c-43f3-8fe6-f6c8ed8581e4", "Live Performance", "Used to indicate that a release group is a live performance of a studio release group."),
+	    ("7c303515-05a8-46fc-baae-d15d76cef286", "Translated Version", "Used to indicate that a release group is a translated version of another."),
+	    ("26ce3301-cf1f-4ce4-a7e2-9670f9a9e1d5", "Re-recording", "Used to indicate that a release group is a re-recording of another, i.e. when an artist performs a new studio rendition of their own album."),
+	    ("cf02e524-9d5b-46b7-a88e-329737395818", "Cover", "Used to indicate that a release group is a cover version of another release group, i.e. when an artist performs a new rendition of another artist's album."),
+	    ("3494ba38-4ac5-40b6-aa6f-4ac7546cd104", "Remixes and Compilations", None),
+	    ("d3286b50-a9d9-4cc3-94ad-cd7e2ffc787a", "DJ-mix Of", "Links a release group containing a DJ-mixed version of a release to the release group containing the source release."),
+	    ("04e0449b-6fb0-48f6-8b9d-0bd41d9b8d76", "Remix Of", "Links a remix release group to the source release group; indicates the release group includes remixed versions of all or most of the tracks in the other release group."),
+	    ("03786c2a-cd9d-4148-b3ea-35ea61de1283", "Mashes Up", "Used to indicate that the release group is a mash-up of two or more other release groups."),
+	    ("fcf680a9-6871-4519-8c4b-8c6549575b35", "Single From", "Indicates that a single or EP release group includes at least one track taken from an album release group."),
+	    ("6d3242b9-0eb5-45c7-bf07-303aaff46d0f", "Excerpt From", "Indicates a release group is an excerpt from another, such as highlights of a box set or a long opera."),
+	    ("589447ea-be2c-46cc-b9e9-469e1d06e18a", "Included In", "Indicates that a release group was included in another, e.g. linking albums to box sets or compilations that contain them."),
+	    ("10476d36-e9f0-40ac-9318-339399bdeadc", "Commentary", "Links a release group to another containing official commentary for it, usually the artist talking about each specific track in an album."),
+
+	    # ── RELEASE ↔ RELEASE RELATIONSHIP TYPES ─────────────────────────────────
+	    ("3676d4aa-2fa7-435f-b83f-cdbbe4740938", "Covers and Versions (Release)", None),
+	    ("fc399d47-23a7-4c28-bfcf-0607a562b644", "Transl-tracklisting", "Indicates that one release is identical to another but the release title and track titles have been translated into another language or transliterated into another script."),
+	    ("48e327b5-2d04-4518-93f1-fed5f0f0fa3c", "Remaster", "Links two releases where one is a remaster of the other, usually to improve audio quality or adjust for modern playback equipment. Generally does not involve artistically important changes."),
+	    ("7918eb7f-bfb0-4245-91fd-3a0e86e13841", "Replaced By", "Links a withdrawn release to the new release put out to replace it."),
+	    ("7ad3c97e-e524-4d9a-a384-2b1407f4939b", "Supporting Release", "Indicates that a release was released in support of another release, to increase sales of an album or create publicity for it."),
+	    ("6d08ec1e-a292-4dac-90f3-c398a39defd5", "Part of Set", "DEPRECATED. Previously used for multi-disc sets; enter a release with multiple discs as a single release containing multiple discs instead."),
+
+	    # ── RELEASE-GROUP ↔ SERIES / EVENT RELATIONSHIP TYPES ────────────────────
+	    ("01018437-91d8-36b9-bf89-3f885d53b5bd", "Part Of", "Indicates that the release group is part of a series."),
+	    ("c610b838-612f-4d9d-8527-0e59849b7d7e", "Recorded During", "Links a release group to the event series (tour, residency, etc.) it was recorded during."),
+	    ("72e1f4d8-011b-49ab-bba4-6990981c972e", "Tour in Support Of", "Links a concert tour with the release group (generally an album) the tour is connected with."),
+	    ("5d8f5a7d-8a7b-4ca1-abe2-d2d4861350cd", "Named After Release Group", "Indicates the release group that inspired a series' name."),
+	]
+	for item in RELEASE_TYPE_LOOKUP_DATA:
+		insert_multiple_columns_data(ReleaseTypeLookup,{"alt_type_id": item[0], "name": item[1], "description": item[2]})
+	logger.info(" Release Type Lookup Seeded")
+
 def seed_all_lookup():
-    seed_version_type_lookup()
-    seed_credit_source_lookup()
-    seed_artist_roles_lookup()
-    seed_work_type_lookup()
-    seed_iso_language_lookup()
-    seed_link_types_lookup()
-    seed_artist_type_lookup()
-    seed_alias_types_lookup()
-    seed_locale_lookup()
-    seed_gender_lookup()
-    seed_country_lookup_restcountries()
+	'''
+	Seeds all lookup tables with predefined data.
+	'''
+	seed_release_type_lookup()
+	seed_version_type_lookup()
+	seed_credit_source_lookup()
+	seed_artist_roles_lookup()
+	seed_work_type_lookup()
+	seed_iso_language_lookup()
+	seed_link_types_lookup()
+	seed_artist_type_lookup()
+	seed_alias_types_lookup()
+	seed_locale_lookup()
+	seed_gender_lookup()
+	seed_country_lookup_restcountries()
 
 seed_all_lookup()
