@@ -1,15 +1,23 @@
-import dotenv
-from mca_tools.machine_identifier import machine_id
-from mca_tools.enums import *
 from sqlalchemy import (
-    Column, Text, Boolean, SmallInteger, Integer, Date,
-    String, TIMESTAMP, Index, text, Enum,
-    UniqueConstraint, ForeignKey, create_engine ,ARRAY
+    ARRAY,
+    TIMESTAMP,
+    Boolean,
+    Column,
+    Date,
+    ForeignKey,
+    Index,
+    Integer,
+    SmallInteger,
+    String,
+    Text,
+    UniqueConstraint,
+    text,
 )
-from sqlalchemy.dialects.postgresql import UUID, JSONB
-from sqlalchemy.orm import declarative_base, sessionmaker
+from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.sql import func
-from schema.base import Base, DB_ENGINE
+
+from mca_tools.enums import *
+from schema.base import Base
 
 """
 music_library/schema.py
@@ -276,7 +284,7 @@ class Releases(Base):
 
     id              = Column(UUID(as_uuid=True), primary_key=True, server_default=text("uuidv7()"))
     title           = Column(Text, nullable=False)
-    type_id         = Column(SmallInteger, ForeignKey("release_type_lookup.id"), nullable=True)
+    # type_id         = Column(ARRAY(SmallInteger), ForeignKey("release_type_lookup.id"), nullable=True)
     date            = Column(Date, nullable=True)
     # label           = Column(Text, nullable=True)
     country_id      = Column(SmallInteger, ForeignKey("country_lookup.id"), nullable=True)    # replaces raw country string
@@ -291,13 +299,31 @@ class Releases(Base):
     updated_by      = Column(String(64), ForeignKey("machines.id"), nullable=True)
 
     __table_args__ = (
-        Index("ix_releases_mb_release_id",       "mb_release_id"),
+        Index("ix_releases_mbid",       "mbid"),
         Index("ix_releases_title",      "title"),
-        Index("ix_releases_type_id",    "type_id"),
+        # Index("ix_releases_type_id",    "type_id"),
         Index("ix_releases_barcode",    "barcode"),
         Index("ix_releases_country_id", "country_id"),
     )
 
+class ReleaseType(Base):
+    """
+    Release types of each releases.
+    One row per release type per release.
+    """
+    __tablename__ = "release_type"
+
+    id              = Column(UUID(as_uuid=True), primary_key=True, server_default=text("uuidv7()"))
+    type_id         = Column(SmallInteger, ForeignKey("release_type_lookup.id"), nullable=True)
+    release_id      = Column(UUID(as_uuid=True), ForeignKey("releases.id"), nullable=False)
+    created_at      = Column(TIMESTAMP(timezone=True), nullable=False, server_default=func.now())
+    updated_at      = Column(TIMESTAMP(timezone=True), nullable=False, server_default=func.now(), onupdate=func.now())
+    updated_by      = Column(String(64), ForeignKey("machines.id"), nullable=True)
+
+    __table_args__ = (
+        Index("ix_release_type_id",    "type_id"),
+        Index("ix_release_id",    "release_id"),
+    )
 
 class ReleaseCredits(Base):
     """
@@ -313,7 +339,7 @@ class ReleaseCredits(Base):
     role_id             = Column(SmallInteger, ForeignKey("artist_roles_lookup.id"), nullable=False)
     credit_source_id    = Column(SmallInteger, ForeignKey("credit_source_lookup.id"), nullable=True)
     credit_source_url   = Column(Text, nullable=True)
-    credit_order        = Column(SmallInteger, nullable=False, server_default=text("1"))
+    credit_order        = Column(SmallInteger, nullable=True)
     note                = Column(Text, nullable=True)
     created_at          = Column(TIMESTAMP(timezone=True), nullable=False, server_default=func.now())
     updated_at          = Column(TIMESTAMP(timezone=True), nullable=False, server_default=func.now(), onupdate=func.now())
