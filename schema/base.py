@@ -1,11 +1,16 @@
+from pathlib import Path
+
 import dotenv
-from mca_tools.machine_identifier import  machine_id
 from sqlalchemy import create_engine
-from sqlalchemy.orm import DeclarativeBase ,sessionmaker
+from sqlalchemy.orm import DeclarativeBase, sessionmaker
+
+from mca_tools.machine_identifier import machine_id
 
 #----- Constants -----------------------------------------------------------------
-CONFIG_CONSTANTS = dotenv.dotenv_values("/mnt/Data/Project/Music Collection Auditor/config/.env")
-DB_ENGINE = create_engine(f"postgresql+psycopg://{CONFIG_CONSTANTS['DB_USERNAME']}:{CONFIG_CONSTANTS['DB_PASSWORD']}@localhost:5432/mcamusicdb")
+env_file = Path("config/.env").resolve()
+CONFIG_CONSTANTS = dotenv.dotenv_values(env_file)
+connection_string = f"postgresql+psycopg://{CONFIG_CONSTANTS['DB_USERNAME']}:{CONFIG_CONSTANTS['DB_PASSWORD']}@localhost:5432/mcamusicdb"
+DB_ENGINE = create_engine(connection_string)
 SESSION_MANAGER = sessionmaker(bind=DB_ENGINE)
 MACHINE_ID = machine_id()
 
