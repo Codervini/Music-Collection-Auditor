@@ -1,24 +1,32 @@
-import requests
-from dotenv import dotenv_values
+import ast
+import csv
+import inspect
+import json
+import time
+from datetime import date
 from pathlib import Path
 from pprint import pprint
-from mca.core.db_butler import ( insert_multiple_columns_data , fetch_id_by_value , get_all_values_of_a_column_in_tb ,
-                                update_multiple_columns_data, get_all_values_of_multiple_column_in_tb)
-from schema.models.file_universe import *
-from schema.lookup.file_universe_lookup import *
-from mca.core.logger import set_logger
-from mca_tools.utils import api_request_handler, coerce_to_date
-import csv
-from datetime import date
-import time
-import json
-import ast
-from mca_tools.cacher.api_cacher import *
+
+import requests
+from dotenv import dotenv_values
+
 import mca_tools.cacher.parsed_cacher as pc
+from mca.core.db_butler import (
+    fetch_id_by_value,
+    get_all_values_of_a_column_in_tb,
+    get_all_values_of_multiple_column_in_tb,
+    insert_multiple_columns_data,
+    update_multiple_columns_data,
+)
+from mca.core.logger import set_logger
+from mca_tools.cacher.api_cacher import *
 from mca_tools.seeder_audit.audit_flusher import *
 from mca_tools.seeder_audit.audit_writer import *
 from mca_tools.seeder_audit.orphan_scanner import *
-import inspect
+from mca_tools.utils import api_request_handler, coerce_to_date
+from schema.lookup.file_universe_lookup import *
+from schema.models.file_universe import *
+
 CONFIG_CONSTANTS = dotenv_values(Path("config",".env"))
 mb_header = {"User-Agent": f"{CONFIG_CONSTANTS["APP_NAME"]}/{CONFIG_CONSTANTS["VERSION"]} ( {CONFIG_CONSTANTS["CONTACT_EMAIL"]} )"}
 logger = set_logger(__name__)
@@ -584,6 +592,7 @@ class SeedReleasesFamily:
 						    "format":media.get("format")
 						}
 						insert_multiple_columns_data(ReleaseMedia,data)
+		auditor.finish()
 
 
 # SeedArtistsFamily().seed_artists(10,1)
