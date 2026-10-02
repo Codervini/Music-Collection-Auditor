@@ -1,8 +1,6 @@
-from schema.base import Base , DB_ENGINE
-from schema.models import *
+from schema.base import DB_ENGINE, Base
 from schema.lookup import *
-import schema.models, schema.lookup
-
+from schema.models import *
 
 # print(Base.metadata.tables)
 Base.metadata.drop_all(DB_ENGINE)
